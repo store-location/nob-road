@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>3D Isoline Generator with Road Highlight</title>
-  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js">
+<meta charset="utf-8"/>
+<title>3D Isoline Generator with Road Highlight</title>
+<meta content="initial-scale=1,maximum-scale=1,user-scalable=no" name="viewport"/>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js">
 function exportRoads() {
   const allLayers = Object.keys(map.style._layers)
     .filter(id => id.startsWith('osm-roads-layer-'))
@@ -84,8 +85,8 @@ map.on('idle', () => {
 });
 
 </script>
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet" />
-  <style>
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet"/>
+<style>
     body { margin:0; padding:0; font-family:"Segoe UI",sans-serif; background:#111; color:#fff; }
     #map { position:absolute; top:0; bottom:0; width:100%; }
     .mapboxgl-popup-content { background:#222; color:#fff; font-weight:bold; padding:10px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,.4); }
@@ -107,7 +108,6 @@ map.on('idle', () => {
 
     @keyframes fadeSlideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
   </style>
-
 <style>
 @keyframes pulsePolygon {
   0% { fill-opacity: 0.3; }
@@ -118,8 +118,6 @@ map.on('idle', () => {
   animation: pulsePolygon 2s infinite;
 }
 </style>
-
-
 <style>
 @keyframes pulseLine {
   0% { stroke-opacity: 0.2; stroke-width: 1; }
@@ -130,60 +128,44 @@ map.on('idle', () => {
   animation: pulseLine 2s infinite;
 }
 </style>
-
 </head>
 <body>
-  <div id="toggleControls" class="top-btn" onclick="toggleControls()">Hide Controls</div>
-  <div id="rotateToggle" class="top-btn" onclick="toggleRotation()">Start Rotate</div>
-
-  <div id="heightIndicator"></div>
-  <div id="controls">
-    <label>Upload CSV (Lat,Lon,Label)</label>
-    <input type="file" id="csvUpload" accept=".csv">
-    <label><input type="checkbox" id="enableCustomLabels"> Manually Edit Labels</label>
-
-    <label>Isoline Mode</label>
-    <select id="mode"><option value="time">Time (seconds)</option><option value="distance">Distance (meters)</option></select>
-
-    <label>Range (seconds or meters)</label>
-    <input type="number" id="range" value="600">
-
-    <label>Extrusion Height (e.g. 50)</label>
-    <input type="number" id="height" value="50">
-
-    <label>Polygon Color (hex)</label>
-    <input type="text" id="color" value="#ff69b4">
-
-    <label>Transparency (0 to 1)</label>
-    <input type="number" id="opacity" value="0.6" step="0.1" min="0" max="1">
-
-    <label>Map Style</label>
-    <select id="style"><option value="dark">Dark</option><option value="light">Light</option></select>
-
-    
+<div class="top-btn" id="toggleControls" onclick="toggleControls()">Hide Controls</div>
+<div class="top-btn" id="rotateToggle" onclick="toggleRotation()">Start Rotate</div>
+<div id="heightIndicator"></div>
+<div id="controls">
+<label>Upload CSV (Lat,Lon,Label)</label>
+<input accept=".csv" id="csvUpload" type="file"/>
+<label><input id="enableCustomLabels" type="checkbox"/> Manually Edit Labels</label>
+<label>Isoline Mode</label>
+<select id="mode"><option value="time">Time (seconds)</option><option value="distance">Distance (meters)</option></select>
+<label>Range (seconds or meters)</label>
+<input id="range" type="number" value="600"/>
+<label>Extrusion Height (e.g. 50)</label>
+<input id="height" type="number" value="50"/>
+<label>Polygon Color (hex)</label>
+<input id="color" type="text" value="#ff69b4"/>
+<label>Transparency (0 to 1)</label>
+<input id="opacity" max="1" min="0" step="0.1" type="number" value="0.6"/>
+<label>Map Style</label>
+<select id="style"><option value="dark">Dark</option><option value="light">Light</option></select>
 <label>Road Highlight Color</label>
-<select id="roadColor">
-  <option value="#00ff99">Neon Green</option>
-  <option value="#ff4d4d">Red</option>
-  <option value="#3399ff">Blue</option>
-  <option value="#cc33ff">Purple</option>
-  <option value="#ffffff">White</option>
-</select>
-
-
-    <label>Transport Type</label>
-    <select id="profile"><option value="driving-car">Driving</option><option value="foot-walking">Walking</option></select>
-
-    <button onclick="generateIsolines()">Generate Isolines</button>
-    <button onclick="exportRoads()">Download Roads GeoJSON</button>
-
-  </div>
-  <div id="labelEditor"></div>
-  <div id="map"></div>
-
+<input id="roadColor" type="text" value="#00ff99"/>
+<label>Transport Type</label>
+<select id="profile"><option value="driving-car">Driving</option><option value="foot-walking">Walking</option></select>
+<button onclick="generateIsolines()">Generate Isolines</button>
+<button onclick="exportRoads()">Download Roads GeoJSON</button>
+</div>
+<div id="labelEditor"></div>
+<div id="map"></div>
 <script>
 mapboxgl.accessToken='pk.eyJ1Ijoibm9ibGVwIiwiYSI6ImNtOW1uM2dmYjA2cGQya3NlMnpjbWkxbHcifQ.WpUMv1ZFl32cOYM_nsKZmg';
 const ORS_KEY='5b3ce3597851110001cf624856b457044e134081bf40f7428b9a1c68';
+
+let roadHighlightColor = document.getElementById("roadColor").value;
+document.getElementById("roadColor").addEventListener("change", () => {
+  roadHighlightColor = document.getElementById("roadColor").value;
+});
 
 const styleSelect=document.getElementById('style');
 function styleURL(v){return`mapbox://styles/mapbox/${v==='dark'?'dark-v10':'light-v10'}`}
@@ -319,7 +301,7 @@ function renderPts(arr){
           };
           map.addSource("osm-roads-" + id, { type: "geojson", data: geojson });
           
-          const color = document.getElementById("roadColor").value;
+          const color = roadHighlightColor;
           
           map.addLayer({
       "metadata": { "class": "pulse-isoline" },
