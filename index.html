@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>3D Isoline Generator with Road Highlight</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js">
+function exportRoads() {
+  const allLayers = Object.keys(map.style._layers)
+    .filter(id => id.startsWith('osm-roads-layer-'))
+    .map(id => map.getSource(map.getLayer(id).source))
+    .filter(src => src && src._data)
+    .flatMap(src => src._data.features || []);
+
+  const geojson = {
+    type: "FeatureCollection",
+    features: allLayers
+  };
+
+  const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'highlighted_roads.geojson';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+map.on('idle', () => {
+  map.getStyle().layers.forEach(l => {
+    if (l.id.startsWith('highlighted-roads-')) {
+      const canvas = document.querySelector('.mapboxgl-canvas');
+      if (canvas) {
+        const paths = canvas.querySelectorAll('path');
+        paths.forEach(p => {
+          if (!p.classList.contains('pulse-road')) {
+            p.classList.add('pulse-road');
+          }
+        });
+      }
+    }
+  });
+});
+
+</script>
+<script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js">
+function exportRoads() {
+  const allLayers = Object.keys(map.style._layers)
+    .filter(id => id.startsWith('osm-roads-layer-'))
+    .map(id => map.getSource(map.getLayer(id).source))
+    .filter(src => src && src._data)
+    .flatMap(src => src._data.features || []);
+
+  const geojson = {
+    type: "FeatureCollection",
+    features: allLayers
+  };
+
+  const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'highlighted_roads.geojson';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+map.on('idle', () => {
+  map.getStyle().layers.forEach(l => {
+    if (l.id.startsWith('highlighted-roads-')) {
+      const canvas = document.querySelector('.mapboxgl-canvas');
+      if (canvas) {
+        const paths = canvas.querySelectorAll('path');
+        paths.forEach(p => {
+          if (!p.classList.contains('pulse-road')) {
+            p.classList.add('pulse-road');
+          }
+        });
+      }
+    }
+  });
+});
+
+</script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet" />
+  <style>
+    body { margin:0; padding:0; font-family:"Segoe UI",sans-serif; background:#111; color:#fff; }
+    #map { position:absolute; top:0; bottom:0; width:100%; }
+    .mapboxgl-popup-content { background:#222; color:#fff; font-weight:bold; padding:10px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,.4); }
+
+    #controls { position:absolute; top:20px; left:20px; background:rgba(0,0,0,.9); padding:20px; border-radius:16px; box-shadow:0 8px 20px rgba(0,0,0,.6); z-index:1; max-width:320px; animation:fadeSlideIn .6s ease-out; }
+    input,select,button { margin:6px 0; padding:10px; width:100%; border:none; border-radius:8px; font-size:14px; outline:none; }
+    input,select { background:#1e1e1e; color:#eee; }
+    button { background:#ff69b4; color:#fff; font-weight:bold; cursor:pointer; transition:background .3s; }
+    button:hover{background:#ff3385}
+    label{font-size:13px;font-weight:500;display:block;margin-top:8px}
+
+    .top-btn{position:absolute;right:10px;background:#fff;color:#000;padding:8px 12px;border-radius:4px;cursor:pointer;font-size:14px;font-weight:600;z-index:2;user-select:none}
+    #toggleControls{top:10px}
+    #rotateToggle{top:50px}
+
+    #heightIndicator{position:absolute;bottom:10px;left:10px;background:rgba(0,0,0,.7);padding:6px 12px;border-radius:4px;font-size:14px;z-index:2;display:none}
+    #labelEditor{display:none;position:absolute;top:60px;left:360px;background:#222;padding:15px;color:#fff;z-index:2;max-height:300px;overflow-y:auto;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.5);animation:fadeSlideIn .6s ease-out}
+    #labelEditor input{margin-bottom:10px;padding:8px;border-radius:6px;background:#333;border:none;color:#fff;width:calc(100% - 10px)}
+
+    @keyframes fadeSlideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+  </style>
+
+<style>
+@keyframes pulsePolygon {
+  0% { fill-opacity: 0.3; }
+  50% { fill-opacity: 0.8; }
+  100% { fill-opacity: 0.3; }
+}
+.pulse-isoline polygon {
+  animation: pulsePolygon 2s infinite;
+}
+</style>
+
+
+<style>
+@keyframes pulseLine {
+  0% { stroke-opacity: 0.2; stroke-width: 1; }
+  50% { stroke-opacity: 1; stroke-width: 4; }
+  100% { stroke-opacity: 0.2; stroke-width: 1; }
+}
+.mapboxgl-canvas path.pulse-road {
+  animation: pulseLine 2s infinite;
+}
+</style>
+
+</head>
+<body>
+  <div id="toggleControls" class="top-btn" onclick="toggleControls()">Hide Controls</div>
+  <div id="rotateToggle" class="top-btn" onclick="toggleRotation()">Start Rotate</div>
+
+  <div id="heightIndicator"></div>
+  <div id="controls">
+    <label>Upload CSV (Lat,Lon,Label)</label>
+    <input type="file" id="csvUpload" accept=".csv">
+    <label><input type="checkbox" id="enableCustomLabels"> Manually Edit Labels</label>
+
+    <label>Isoline Mode</label>
+    <select id="mode"><option value="time">Time (seconds)</option><option value="distance">Distance (meters)</option></select>
+
+    <label>Range (seconds or meters)</label>
+    <input type="number" id="range" value="600">
+
+    <label>Extrusion Height (e.g. 50)</label>
+    <input type="number" id="height" value="50">
+
+    <label>Polygon Color (hex)</label>
+    <input type="text" id="color" value="#ff69b4">
+
+    <label>Transparency (0 to 1)</label>
+    <input type="number" id="opacity" value="0.6" step="0.1" min="0" max="1">
+
+    <label>Map Style</label>
+    <select id="style"><option value="dark">Dark</option><option value="light">Light</option></select>
+
+    
+<label>Road Highlight Color</label>
+<select id="roadColor">
+  <option value="#00ff99">Neon Green</option>
+  <option value="#ff4d4d">Red</option>
+  <option value="#3399ff">Blue</option>
+  <option value="#cc33ff">Purple</option>
+  <option value="#ffffff">White</option>
+</select>
+
+
+    <label>Transport Type</label>
+    <select id="profile"><option value="driving-car">Driving</option><option value="foot-walking">Walking</option></select>
+
+    <button onclick="generateIsolines()">Generate Isolines</button>
+    <button onclick="exportRoads()">Download Roads GeoJSON</button>
+
+  </div>
+  <div id="labelEditor"></div>
+  <div id="map"></div>
+
+<script>
+mapboxgl.accessToken='pk.eyJ1Ijoibm9ibGVwIiwiYSI6ImNtOW1uM2dmYjA2cGQya3NlMnpjbWkxbHcifQ.WpUMv1ZFl32cOYM_nsKZmg';
+const ORS_KEY='5b3ce3597851110001cf624856b457044e134081bf40f7428b9a1c68';
+
+const styleSelect=document.getElementById('style');
+function styleURL(v){return`mapbox://styles/mapbox/${v==='dark'?'dark-v10':'light-v10'}`}
+const map=new mapboxgl.Map({container:'map',style:styleURL(styleSelect.value),center:[55.2708,25.2048],zoom:10,pitch:60,bearing:-10,antialias:true});
+styleSelect.addEventListener('change',()=>map.setStyle(styleURL(styleSelect.value)));
+
+let rotating=false,animId;
+function rotateStep(){map.setBearing(map.getBearing()+0.1);animId=requestAnimationFrame(rotateStep)}
+function toggleRotation(){rotating=!rotating;const btn=document.getElementById('rotateToggle');if(rotating){btn.textContent='Stop Rotate';rotateStep()}else{cancelAnimationFrame(animId);btn.textContent='Start Rotate'}}
+['mousedown','touchstart','wheel','dragstart'].forEach(evt=>map.on(evt,()=>{if(rotating)toggleRotation()}));
+
+function toggleControls(){const panel=document.getElementById('controls');const btn=document.getElementById('toggleControls');panel.style.display=panel.style.display==='none'?'block':'none';btn.textContent=panel.style.display==='none'?'Show Controls':'Hide Controls'}
+
+function generateIsolines(){
+  const file=document.getElementById('csvUpload').files[0];
+  if(!file)return alert('Upload a CSV first!');
+  const edit=document.getElementById('enableCustomLabels').checked;
+  const editor=document.getElementById('labelEditor');
+  const rdr=new FileReader();
+  rdr.onload=e=>{
+    const lines=e.target.result.split('\n').slice(1);
+    editor.innerHTML=''; const pts=[];
+    lines.forEach((ln,i)=>{
+      const c=ln.trim().split(',');
+      if(c.length<2)return;
+      const lat=c[0].trim(),lon=c[1].trim();
+      let label=c[2]?c[2].trim():`📍 Point ${i+1}`;
+      if(label.toLowerCase().includes('mall'))label='🛍️ '+label;
+      else if(label.toLowerCase().includes('cafe'))label='☕ '+label;
+      else if(label.toLowerCase().includes('park'))label='🌳 '+label;
+      pts.push({lat,lon,label});
+      if(edit)editor.innerHTML+=`<label>Label for (${lat},${lon})</label><input data-idx='${i}' value='${label}'><br>`;
+    });
+    if(edit){
+      editor.style.display='block';
+      const btn=document.createElement('button');
+      btn.textContent='Apply Labels & Render';
+      btn.onclick=()=>{
+        editor.querySelectorAll('input').forEach(inp=>pts[inp.dataset.idx].label=inp.value);
+        editor.style.display='none'; renderPts(pts)
+      };
+      editor.appendChild(btn);
+    } else renderPts(pts);
+  };
+  rdr.readAsText(file);
+}
+
+// 🟡 Highlight only roads inside isoline
+let latestIsolinePolygon = null;
+
+function renderPts(arr){
+  arr.forEach(loc=>{
+    const pt=[+loc.lon,+loc.lat];
+    const rangeVal=+document.getElementById('range').value;
+    const body={locations:[pt],range:[rangeVal],units:'m',smoothing:3};
+
+    fetch(`https://api.openrouteservice.org/v2/isochrones/${document.getElementById('profile').value}`, {
+      method:'POST',
+      headers:{Authorization:ORS_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    }).then(r=>r.json()).then(data=>{
+      const id='iso-'+Math.random();
+      latestIsolinePolygon=data.features[0].geometry;
+
+      map.addSource(id,{type:'geojson',data});
+      
+      // 🔁 Animate the isoline polygon
+      map.addLayer({
+      "metadata": { "class": "pulse-isoline" },
+        id: "pulse-layer-" + id,
+        type: "fill",
+        source: id,
+        paint: {
+          "fill-color": document.getElementById('color').value,
+          "fill-opacity": [
+            "interpolate",
+            ["linear"],
+            ["mod", ["to-number", ["get", "time"]], 1000],
+            0, 0.2,
+            500, 0.6,
+            1000, 0.2
+          ]
+        }
+      });
+
+      // Simulate pulsing effect by updating every second
+      if (!map.pulseTimer) {
+        map.pulseTimer = setInterval(() => {
+          const now = Date.now();
+          const pulseOpacity = [
+            "interpolate",
+            ["linear"],
+            ["mod", now % 1000, 1000],
+            0, 0.2,
+            500, 0.6,
+            1000, 0.2
+          ];
+          try {
+            map.setPaintProperty("pulse-layer-" + id, "fill-opacity", pulseOpacity);
+          } catch (e) {}
+        }, 500);
+      }
+
+
+      // ✅ Fetch OSM roads inside isoline bounding box using Overpass API
+      const bbox = turf.bbox(data.features[0]); // [minX, minY, maxX, maxY]
+      const [minLng, minLat, maxLng, maxLat] = bbox;
+      const overpassQuery = `
+        [out:json];
+        (
+          way["highway"](${minLat},${minLng},${maxLat},${maxLng});
+        );
+        out geom;
+      `;
+      fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        body: overpassQuery
+      })
+        .then(res => res.json())
+        .then(json => {
+          const geojson = {
+            type: "FeatureCollection",
+            features: json.elements
+              .filter(el => el.type === "way")
+              .map(way => ({
+                type: "Feature",
+                geometry: {
+                  type: "LineString",
+                  coordinates: way.geometry.map(pt => [pt.lon, pt.lat])
+                },
+                properties: {}
+              }))
+          };
+          map.addSource("osm-roads-" + id, { type: "geojson", data: geojson });
+          
+          const color = document.getElementById("roadColor").value;
+          
+          map.addLayer({
+      "metadata": { "class": "pulse-isoline" },
+            id: "osm-roads-layer-shadow-" + id,
+            type: "line",
+            source: "osm-roads-" + id,
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: {
+              "line-color": "#000000",
+              "line-opacity": 0.3,
+              "line-width": 12
+            }
+          });
+
+          map.addLayer({
+      "metadata": { "class": "pulse-isoline" },
+            id: "osm-roads-layer-casing-" + id,
+            type: "line",
+            source: "osm-roads-" + id,
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: {
+              "line-color": "#111111",
+              "line-width": 8
+            }
+          });
+          map.addLayer({
+      "metadata": { "class": "pulse-isoline" },
+            id: "osm-roads-layer-" + id,
+            type: "line",
+            source: "osm-roads-" + id,
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: {
+              "line-color": color,
+              "line-width": 4
+            }
+          });
+
+        });
+
+      
+      const mk=document.createElement('div');
+      mk.style.cssText="background:url('https://cdn-icons-png.flaticon.com/512/447/447031.png')/contain no-repeat;width:30px;height:30px";
+
+      const marker = new mapboxgl.Marker(mk).setLngLat(pt).addTo(map);
+
+      const labelDiv = document.createElement('div');
+      labelDiv.style.cssText = 'position:absolute;background:#222;color:#fff;font-size:12px;padding:2px 6px;border-radius:4px;top:-10px;left:35px;white-space:nowrap;';
+      labelDiv.innerText = loc.label;
+      mk.appendChild(labelDiv);
+
+
+      // ✅ Add only roads inside isoline
+      
+
+      // Optional: hide other clutter
+      ['building','landuse','water'].forEach(layer=>{
+        try{map.setLayoutProperty(layer,'visibility','none')}catch(e){}
+      });
+
+    }).catch(console.error)
+  });
+}
+
+function exportRoads() {
+  const allLayers = Object.keys(map.style._layers)
+    .filter(id => id.startsWith('osm-roads-layer-'))
+    .map(id => map.getSource(map.getLayer(id).source))
+    .filter(src => src && src._data)
+    .flatMap(src => src._data.features || []);
+
+  const geojson = {
+    type: "FeatureCollection",
+    features: allLayers
+  };
+
+  const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'highlighted_roads.geojson';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+map.on('idle', () => {
+  map.getStyle().layers.forEach(l => {
+    if (l.id.startsWith('highlighted-roads-')) {
+      const canvas = document.querySelector('.mapboxgl-canvas');
+      if (canvas) {
+        const paths = canvas.querySelectorAll('path');
+        paths.forEach(p => {
+          if (!p.classList.contains('pulse-road')) {
+            p.classList.add('pulse-road');
+          }
+        });
+      }
+    }
+  });
+});
+
+</script>
+</body>
+</html>
